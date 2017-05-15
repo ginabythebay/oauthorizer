@@ -70,8 +70,7 @@ func (na needsAuth) GetURL() string {
 //      	 return
 //       }
 //
-//	     http.Redirect(w, r, urlOfMainHandler, http.StatusTemporaryRedirect)
-//
+//       http.Redirect(w, r, urlOfMainHandler, http.StatusTemporaryRedirect)
 //   }
 type WebHelper struct {
 	Config *oauth2.Config
