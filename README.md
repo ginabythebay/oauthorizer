@@ -1,6 +1,6 @@
 # oauthorizer
 
-[![GoDoc](https://godoc.org/github.com/ginabythebay/oauthorizer?status.svg)](https://godoc.org/github.com/ginabythebay/oauthorizer)
+[![Build Status](https://travis-ci.org/ginabythebay/oauthorizer.svg?branch=master)](https://travis-ci.org/ginabythebay/oauthorizer) [![GoDoc](https://godoc.org/github.com/ginabythebay/oauthorizer?status.svg)](https://godoc.org/github.com/ginabythebay/oauthorizer)
 
 Go library to help clients request authorization to resources via oauth2.
 
