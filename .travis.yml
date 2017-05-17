@@ -1,0 +1,8 @@
+language: go
+go:
+  - 1.6
+  - 1.8.1
+  - tip
+script:
+  - go install ./...
+  - go test -v -race ./...
