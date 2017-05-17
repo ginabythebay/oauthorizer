@@ -32,9 +32,9 @@ func (na needsAuth) GetURL() string {
 }
 
 // WebHelper helps to navigate through the oauth2 process.  Typically
-// you would call GetClient before needing to access a resource,
-// checking for errors.  If there is a RedirectError, you would
-// redirect the users browser to the url returned by GetURL.
+// you would call GetClient before needing to access a resource.  If
+// there it returns nil, you could call GenAuthURL and redirect the
+// browser to that.
 //
 // If the users grants access to the resource, the browser will be
 // redirected to the url listed in the Config.  In that handler, you
@@ -47,14 +47,14 @@ func (na needsAuth) GetURL() string {
 //       ctx := r.Context()
 //       webHelper := getWebHelper()
 //
-//   	 client, err := webHelper.GetClient(ctx)
-//   	 if errRedir, ok := err.(oauthorizer.RedirectError); ok {
-//   		 url := errRedir.GetURL()
+//   	 client := webHelper.GetClient(ctx)
+//   	 if client == nil {
+//   		 url, err := webHelper.GenAuthURL(ctx)
+//           if err != nil {
+//      	     writeError(w, http.StatusInternalServerError)
+//      	     return
+//               }
 //   		 http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-//   		 return
-//   	 }
-//   	 if err != nil {
-//   		 writeError(w, http.StatusInternalServerError)
 //   		 return
 //   	 }
 //
@@ -91,28 +91,25 @@ type WebHelper struct {
 	Opts []oauth2.AuthCodeOption
 }
 
-// GetClient returns an http client configured for oauth2.  If the
-// error returned implements the RedirectError interface, redirect the
-// client to the associated url to get their permission to access the
-// associated resources.
-func (wh *WebHelper) GetClient(ctx context.Context) (*http.Client, error) {
+// GetClient returns an http client configured for oauth2.  Returns
+// nil if there isn't a valid token found.
+func (wh *WebHelper) GetClient(ctx context.Context) *http.Client {
 	tok := restoreToken(ctx, wh.TokenStore)
 	if tok == nil {
-		nonce := newNonce()
-		url := wh.Config.AuthCodeURL(nonce, wh.Opts...)
-		if err := wh.NonceStore.Save(ctx, []byte(nonce)); err != nil {
-			return nil, err
-		}
-		return nil, needsAuth{url}
+		return nil
 	}
-	return wh.Config.Client(ctx, tok), nil
+	return wh.Config.Client(ctx, tok)
 }
 
-func newNonce() string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	b := make([]byte, 16)
-	_, _ = r.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
+// GenAuthURL Generates a new authorization URL.  Note that this has
+// the side effect of saving the associated nonce.
+func (wh *WebHelper) GenAuthURL(ctx context.Context) (string, error) {
+	nonce := newNonce()
+	url := wh.Config.AuthCodeURL(nonce, wh.Opts...)
+	if err := wh.NonceStore.Save(ctx, []byte(nonce)); err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 // Exchange exchanges an authorization code for a token, after
@@ -141,4 +138,11 @@ func (wh *WebHelper) Exchange(ctx context.Context, r *http.Request) error {
 		return fmt.Errorf("token save failure: %v", err)
 	}
 	return nil
+}
+
+func newNonce() string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, 16)
+	_, _ = r.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }
